@@ -1,19 +1,6 @@
 "use strict";
 // Install app
-function initialize() {
-   //Do your map stuff
-}
-
-function loadScript() {
-  var script = document.createElement('script');
-  script.type = 'text/javascript';
-  script.src = 
-      'https://maps.googleapis.com/maps/api/js?v=3&sensor=true&callback=initialize';
-  document.body.appendChild(script);
-}
-
-window.onload = loadScript;
-(function(){
+window.onload = function() {
 	var App = function(){
 		var app = {};
 		var violet = Violet.init({
@@ -38,12 +25,12 @@ window.onload = loadScript;
 			}));
 		};
 		app.sample = function(clbk){
-			violet.streaming.sample(clbk, (function(xhr){
+			violet.publicstream.start(clbk, (function(xhr){
 				console.log("Error"+xhr);
 			}));
 		};
 		app.stop = function(){
-			violet.streaming.stop();
+			violet.publicstream.stop();
 		};
 		app.showMap = function() {
 			var map = new google.maps.Map ($content[0], options);
@@ -51,13 +38,8 @@ window.onload = loadScript;
 		return app;
 	};
 	var app = App();
-	if (navigator.mozApps) {
-		var twlink = document.querySelector("#login");
-		twlink.onclick = function(){
-			app.login();
-		};
-		var start = document.querySelector("#start");
-		start.onclick = function(){
+	var iframe = document.getElementById("frame");
+	(function() {
 			app.sample(function(tw){
 				var geo = {};
 				if(tw.coordinates != null){
@@ -72,9 +54,8 @@ window.onload = loadScript;
 					return;
 				}
 				console.log("lat: " + geo.lat + " lng: " +geo.lng );
+				geo.msg = tw.text;
+				iframe.contentWindow.postMessage(geo, '*');
 			});
-		};
-	} else {
-		console.log("Open Web Apps not supported");
-	}
-})();
+	})();
+};

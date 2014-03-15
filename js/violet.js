@@ -432,7 +432,7 @@ Violet.Request.request = function(endpoint, raw_query, callback, error){
   var info = Violet.Request.generateRequestInfo(endpoint, raw_query);
 
   var method = info.method;
-  var uri = info.uri;
+  var uri = this.base_uri + info.uri;
   var query = info.query;
   var get_data = info.get_data;
 
@@ -487,7 +487,7 @@ Violet.Request.generateRequestInfo = function(endpoint, query){
 
   return {
     method: method,
-    uri: 'https://api.twitter.com/1.1/' + endpoint + '.json',
+    uri: endpoint + '.json',
     query: query,
     get_data: get_data
   };
@@ -499,30 +499,30 @@ Violet.Streaming = function Class(oauth){
   if(!(this instanceof Class)){ return new Class(oauth); }
 
   this.oauth = oauth;
+  this.base_uri = '';
+  this.endpoint = '';
 };
 
 (function(){
 var proto = Violet.Streaming.prototype;
 
-proto.start = function(callback, error){
-  var uri = 'https://userstream.twitter.com/1.1/user.json';
-  this.start_(uri, callback, error);
-};
+proto.start = function(callback, error, raw_query){
+  var info = Violet.Request.generateRequestInfo(this.endpoint, raw_query);
 
-proto.sample = function(callback, error){
-  var uri = 'https://stream.twitter.com/1.1/statuses/sample.json';
-  this.start_(uri, callback, error);
-};
+  var method = info.method;
+  var uri = this.base_uri + info.uri;
+  var query = info.query;
+  var get_data = info.get_data;
 
-proto.start_ = function(uri, callback, error){
-  var method = 'GET';
+  console.log(info);
+  if(method === null){ return false; }
 
   var con = Violet.HTTPClient({
     method: method,
-    uri: uri
+    uri: uri + get_data
   });
 
-  con.setOAuthHeader(this.oauth.obtainOAuthParams(method, uri));
+  con.setOAuthHeader(this.oauth.obtainOAuthParams(method, uri, query));
 
   con.onloading = function(xhr){
     var lines = xhr.responseText.split('\r\n');
@@ -530,6 +530,10 @@ proto.start_ = function(uri, callback, error){
     callback(JSON.parse(lines[lines.length-2]));
   };
   con.onerror = error;
+
+  if(method === 'POST'){
+    con.post_data = query;
+  }
 
   con.start();
   this.connection = con;
@@ -541,6 +545,36 @@ proto.stop = function(){
 };
 
 }());
+
+// userstream.js
+
+Violet.UserStream = function(oauth){
+  var streaming = Violet.Streaming(oauth);
+  streaming.base_uri = 'https://userstream.twitter.com/1.1/';
+  streaming.endpoint = 'user';
+
+  return streaming;
+};
+
+// filterstream.js
+
+Violet.FilterStream = function(oauth){
+  var streaming = Violet.Streaming(oauth);
+  streaming.base_uri = 'https://stream.twitter.com/1.1/';
+  streaming.endpoint = 'statuses/filter';
+
+  return streaming;
+};
+
+// publicstream.js
+
+Violet.PublicStream = function(oauth){
+  var streaming = Violet.Streaming(oauth);
+  streaming.base_uri = 'https://userstream.twitter.com/1.1/';
+  streaming.endpoint = 'statuses/sample';
+
+  return streaming;
+};
 
 // init.js
 
@@ -567,7 +601,11 @@ proto.initialize = function(){
     access_token_secret: this.access_token_secret
   });
 
-  this.streaming = Violet.Streaming(this.oauth);
+  this.userstream = Violet.UserStream(this.oauth);
+  this.streaming = this.userstream; // deprecated
+
+  this.filterstream = Violet.FilterStream(this.oauth);
+  this.publicstream = Violet.PublicStream(this.oauth);
 
   this.request = Violet.Request.request.bind(this);
 };
