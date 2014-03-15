@@ -1,16 +1,18 @@
-/* global alert, console */
 "use strict";
 // Install app
 function initialize() {
-  var mapOptions = {
-  };
-
-  map = new google.maps.Map(document.getElementById('map-canvas'),
-      mapOptions);
+   //Do your map stuff
 }
 
-google.maps.event.addDomListener(window, 'load', initialize);
+function loadScript() {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src = 
+      'https://maps.googleapis.com/maps/api/js?v=3&sensor=true&callback=initialize';
+  document.body.appendChild(script);
+}
 
+window.onload = loadScript;
 (function(){
 	var App = function(){
 		var app = {};
@@ -56,7 +58,6 @@ google.maps.event.addDomListener(window, 'load', initialize);
 		};
 		var start = document.querySelector("#start");
 		start.onclick = function(){
-			google.map;
 			app.sample(function(tw){
 				var geo = {};
 				if(tw.coordinates != null){
